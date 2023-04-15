@@ -1,3 +1,57 @@
+# Project template for rp2040-hal on WSL2
+
+This is a fork of [rp2040-project-template](https://github.com/rp-rs/rp2040-project-template) but setup for WSL2 on VSCode, 
+using [USB pass through for WSL](https://learn.microsoft.com/en-us/windows/wsl/connect-usb), since many of the tools for both embedded Rust development
+and Pico debugging do not work on plain Windows.
+
+To setup;
+
+- Ensure you have setup 2 Picos with one in the picoprobe configuration
+ ![Pico Wiring Diagram](https://substackcdn.com/image/fetch/w_1456,c_limit,f_webp,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F6da78653-bf53-4c65-9860-04093a6c38a0_1482x1120.png)
+- Flash the (leftmost) Pico with the [picoprobe firmware](https://github.com/raspberrypi/picoprobe/releases/latest/download/picoprobe.uf2) from the [Raspberry Pi site](https://www.raspberrypi.com/documentation/microcontrollers/raspberry-pi-pico.html#debugging-using-another-raspberry-pi-pico).  
+- Ensure [VSCode](https://apps.microsoft.com/store/detail/XP9KHM4BK9FZ7Q) is installed. 
+- Ensure [WSL2](https://www.microsoft.com/store/productId/9P9TQF7MRM4R) is installed.
+- With the WSL2 terminal open, install the toolchain:
+  - Install Rust: `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
+    - It may be worth update existing Rust installations: `rustup update`
+  - Install gdb-multiarch: `sudo apt install git gdb-multiarch`
+  - Install followinf dependancies: `sudo apt install automake autoconf build-essential texinfo libtool libftdi-dev libusb-1.0-0-dev`
+  - Install OpenOCD for Raspberry Pi;
+    - Clone the source: `git clone https://github.com/raspberrypi/openocd.git --branch picoprobe --depth=1`
+    - Cd into the source folder: `cd openocd`
+    - Run: `./bootstrap`
+    - Then run: `./configure --disable-werror --enable-ftdi --enable-sysfsgpio --enable-bcm2835gpio --enable-picoprobe`
+    - Build the sources: `make -j4`
+    - Now install: `sudo make install`
+    - Verify the installation: `openocd -v`
+  - Install minicom: `sudo apt install minicom`
+- Install [WSL2 USB passthrough](https://learn.microsoft.com/en-us/windows/wsl/connect-usb);
+  - Once installed, in a PowerShell running as admin, attach the Picoprob bus id. 
+- Back in the WSL2 terminal;
+  - Get the Picoprobes vender and product id via: `usb-devices`
+  - Make/open a file in: `/etc/udev/rules.d/99-openocd.rules`
+    - Add the following lines
+      ```
+      # Raspberry Pi Picoprobe
+      ATTRS{idVendor}=="[vendor id from above]", ATTRS{idProduct}=="[product id from above]", MODE:="0666"
+      ```
+  - Apply the udev rules to your running system: `sudo udevadm trigger`
+  - Install Rust build dependancies;
+    - `rustup target install thumbv6m-none-eabi`
+    - `cargo install probe-run`
+    - `cargo install flip-link`
+  - Clone and build this template;
+    - Clone the repo: `git clone https://github.com/jasonalexander-ja/PicoRustWSL.git`
+    - Cd into the repo: `cd PicoRustWSL`
+    - Open in code: `code .`
+    - In a WSL terminal, build the repo: `cargo build` 
+  - In a new WSL terminal, run OpenOCD;
+    - The official documentation states to run `openocd -f interface/picoprobe.cfg -f target/rp2040.cfg -s tcl`
+    - I have found better luck using `openocd -f interface/cmsis-dap.cfg -f target/rp2040.cfg -s tcl -c "adapter speed 5000"`
+    - I found that if OpenOCD cannot find the picoprobe, runnign as sudo tends to fix this: `sudo openocd -f interface/cmsis-dap.cfg -f target/rp2040.cfg -s tcl -c "adapter speed 5000"`
+  - In VSCode, you should now be able to `F5` debug to upload code and set breakpoints. 
+
+
 # Project template for rp2040-hal
 
 This template is intended as a starting point for developing your own firmware based on the rp2040-hal.
