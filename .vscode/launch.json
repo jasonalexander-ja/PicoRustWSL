@@ -7,23 +7,14 @@
         {
             "name": "Debug rp2040-project-template",
             "request": "launch",
-            "type": "cortex-debug",
-            "cwd": "${workspaceRoot}",
-            "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/rp2040-project-template",
-            "preLaunchTask": "Build binary",
-            "servertype": "external",
-            // This may need to be gdb-multiarch depending on your system (i.e. Linux vs Mac)
-            "gdbPath": "gdb-multiarch",
-            // Connect to an already running OpenOCD instance
-            "gdbTarget": "localhost:3333",
-            // If you have the Pico SDK installed, allows the
-            // display of the RP2040 CPU registers in VS Code
-            "svdFile": "${env:PICO_SDK_PATH}/src/rp2040/hardware_regs/rp2040.svd",
-            "runToMain": true,
-            "preLaunchCommands": [
-                "monitor init",
-                "monitor reset init",
-                "monitor halt",
+            "cwd": "${workspaceFolder}",
+            "chip": "rp2040",
+            // RP2040 doesn't support connectUnderReset
+            "connectUnderReset": false,
+            "speed": 4000,
+            "runtimeExecutable": "probe-rs",
+            "runtimeArgs": [
+                "dap-server"
             ],
             // Work around for stopping at main on restart
             "postRestartCommands": [
